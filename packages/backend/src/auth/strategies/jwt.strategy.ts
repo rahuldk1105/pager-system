@@ -17,7 +17,7 @@ export interface JwtPayload {
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private configService: ConfigService,
-    private usersService: UsersService,
+    private supabaseConfig: SupabaseConfigService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -39,5 +39,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       roles: user.roles || [],
       deviceId: payload.deviceId,
     };
+  }
+
+  async validateSupabaseToken(token: string) {
+    try {
+      const supabase = this.supabaseConfig.getClient();
+      const { data, error } = await supabase.auth.getUser(token);
+      if (error) throw error;
+      return data.user;
+    } catch (error) {
+      throw new UnauthorizedException('Invalid Supabase token');
+    }
   }
 }

@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
+import { SupabaseConfigService } from '../config/supabase.config';
 import { User, UserStatus } from '../users/user.entity';
 import { LoginDto } from './dto/login.dto';
 import { JwtPayload } from './strategies/jwt.strategy';
@@ -31,6 +32,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private supabaseConfig: SupabaseConfigService,
   ) {}
 
   async login(loginDto: LoginDto): Promise<AuthResponse> {
@@ -91,6 +93,51 @@ export class AuthService {
       // Log unexpected errors
       this.logger.error(`Login error for ${loginDto.email}:`, error);
       throw new AuthenticationException('Authentication service temporarily unavailable');
+    }
+  }
+
+  async signUpWithSupabase(email: string, password: string, userData?: any): Promise<any> {
+    try {
+      const supabase = this.supabaseConfig.getClient();
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: userData
+        }
+      });
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      this.logger.error('Supabase signup error:', error);
+      throw new AuthenticationException('Signup failed');
+    }
+  }
+
+  async signInWithSupabase(email: string, password: string): Promise<any> {
+    try {
+      const supabase = this.supabaseConfig.getClient();
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      this.logger.error('Supabase signin error:', error);
+      throw new AuthenticationException('Invalid credentials');
+    }
+  }
+
+  async getSupabaseUser(accessToken: string): Promise<any> {
+    try {
+      const supabase = this.supabaseConfig.getClient();
+      const { data, error } = await supabase.auth.getUser(accessToken);
+      if (error) throw error;
+      return data.user;
+    } catch (error) {
+      this.logger.error('Supabase getUser error:', error);
+      throw new AuthenticationException('Invalid token');
     }
   }
 

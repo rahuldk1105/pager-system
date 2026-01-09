@@ -14,10 +14,8 @@ export class UsersService {
 
   constructor(
     @InjectRepository(User)
-    private userRepository: Repository<User>,
-    @InjectRepository(UserRoleEntity)
-    private userRoleRepository: Repository<UserRoleEntity>,
-    private dataSource: DataSource,
+    private usersRepository: Repository<User>,
+    private supabaseConfig: SupabaseConfigService,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
