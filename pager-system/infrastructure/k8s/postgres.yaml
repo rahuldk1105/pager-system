@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pager-postgres
+  namespace: pager-system
+  labels:
+    app: pager-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pager-postgres
+  template:
+    metadata:
+      labels:
+        app: pager-postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:14-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: "pager_prod"
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: pager-secrets
+              key: DB_USERNAME
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: pager-secrets
+              key: DB_PASSWORD
+        - name: POSTGRES_INITDB_ARGS
+          value: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+        resources:
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - $(POSTGRES_USER)
+            - -d
+            - pager_prod
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - $(POSTGRES_USER)
+            - -d
+            - pager_prod
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: pager-postgres-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pager-postgres
+  namespace: pager-system
+  labels:
+    app: pager-postgres
+spec:
+  ports:
+  - port: 5432
+    targetPort: 5432
+  selector:
+    app: pager-postgres
+  clusterIP: None  # Headless service for stable DNS
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pager-postgres-pvc
+  namespace: pager-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: standard

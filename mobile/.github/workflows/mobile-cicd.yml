@@ -1,0 +1,213 @@
+name: Mobile CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'mobile/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'mobile/**'
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type'
+        required: true
+        default: 'both'
+        type: choice
+        options:
+          - both
+          - android
+          - ios
+
+jobs:
+  flutter-tests:
+    name: Run Flutter Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.16.0'
+        channel: 'stable'
+
+    - name: Install dependencies
+      run: flutter pub get
+
+    - name: Run tests
+      run: flutter test
+
+    - name: Run integration tests
+      run: flutter test integration_test/
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: mobile/coverage/lcov.info
+        flags: flutter
+        name: flutter-coverage
+
+  android-build:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    needs: flutter-tests
+    if: github.event.inputs.build_type == 'both' || github.event.inputs.build_type == 'android' || github.event_name != 'workflow_dispatch'
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.16.0'
+        channel: 'stable'
+
+    - name: Setup Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Install dependencies
+      run: flutter pub get
+
+    - name: Build APK
+      run: flutter build apk --release --split-per-abi
+
+    - name: Build App Bundle
+      run: flutter build appbundle --release
+
+    - name: Upload APK artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: android-apk
+        path: mobile/build/app/outputs/apk/release/
+
+    - name: Upload App Bundle artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: android-bundle
+        path: mobile/build/app/outputs/bundle/release/
+
+    - name: Upload to Google Play (Internal Testing)
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: |
+        # This would require Google Play Developer API setup
+        # For now, just note that artifacts are ready for upload
+        echo "APK and Bundle ready for Google Play upload"
+        echo "Manual upload required until Google Play API is configured"
+
+  ios-build:
+    name: Build iOS App
+    runs-on: macos-latest
+    needs: flutter-tests
+    if: github.event.inputs.build_type == 'both' || github.event.inputs.build_type == 'ios' || github.event_name != 'workflow_dispatch'
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.16.0'
+        channel: 'stable'
+
+    - name: Install dependencies
+      run: flutter pub get
+
+    - name: Setup Xcode
+      run: sudo xcode-select -s /Applications/Xcode_15.0.app/Contents/Developer
+
+    - name: Build iOS
+      run: flutter build ios --release --no-codesign
+
+    - name: Upload iOS artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ios-build
+        path: mobile/build/ios/iphoneos/
+
+    - name: Upload to TestFlight
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: |
+        # This would require App Store Connect API setup
+        # For now, just note that build is ready for upload
+        echo "iOS build ready for TestFlight upload"
+        echo "Manual upload required until App Store Connect API is configured"
+
+  distribute-beta:
+    name: Distribute Beta Release
+    runs-on: ubuntu-latest
+    needs: [android-build, ios-build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+    - name: Download Android artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: android-apk
+        path: ./artifacts/android/
+
+    - name: Download iOS artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: ios-build
+        path: ./artifacts/ios/
+
+    - name: Create release notes
+      run: |
+        echo "## Pager System Mobile v${GITHUB_RUN_NUMBER}" > release-notes.md
+        echo "" >> release-notes.md
+        echo "### Changes" >> release-notes.md
+        echo "- Bug fixes and improvements" >> release-notes.md
+        echo "- Performance enhancements" >> release-notes.md
+        echo "" >> release-notes.md
+        echo "### Installation" >> release-notes.md
+        echo "- Android: Download APK from releases" >> release-notes.md
+        echo "- iOS: Available via TestFlight" >> release-notes.md
+
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: mobile-v${{ github.run_number }}
+        release_name: Mobile Release v${{ github.run_number }}
+        body_path: release-notes.md
+        draft: false
+        prerelease: true
+
+    - name: Upload Android APK to Release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./artifacts/android/app-release.apk
+        asset_name: pager-system-mobile.apk
+        asset_content_type: application/vnd.android.package-archive
+
+    - name: Notify team
+      run: |
+        echo "Mobile build completed successfully!"
+        echo "Android APK: Available in GitHub releases"
+        echo "iOS build: Ready for TestFlight upload"
+        echo "Next steps:"
+        echo "1. Upload Android bundle to Google Play Console (Internal testing)"
+        echo "2. Upload iOS build to App Store Connect (TestFlight)"
+        echo "3. Share download links with beta testers"

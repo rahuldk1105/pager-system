@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pager-system
+  labels:
+    name: pager-system
+    environment: production
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pager-config
+  namespace: pager-system
+  labels:
+    app: pager-api
+data:
+  NODE_ENV: "production"
+  PORT: "3000"
+  API_PREFIX: "api"
+  LOG_LEVEL: "warn"
+  DB_SSL_REJECT_UNAUTHORIZED: "true"
+  REDIS_DB: "0"
+  CORS_ORIGINS: "https://your-app-domain.com"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pager-secrets
+  namespace: pager-system
+  labels:
+    app: pager-api
+type: Opaque
+data:
+  # Base64 encoded secrets - replace with actual values
+  DB_USERNAME: <base64-encoded-username>
+  DB_PASSWORD: <base64-encoded-password>
+  REDIS_PASSWORD: <base64-encoded-redis-password>
+  JWT_SECRET: <base64-encoded-jwt-secret>
+  JWT_REFRESH_SECRET: <base64-encoded-refresh-secret>
+  SENTRY_DSN: <base64-encoded-sentry-dsn>
+  DATADOG_API_KEY: <base64-encoded-datadog-key>

@@ -1,0 +1,66 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    # Warm up phase
+    - duration: 60
+      arrivalRate: 1
+      name: "Warm up"
+    # Load testing phase
+    - duration: 300
+      arrivalRate: 5
+      name: "Sustained load"
+    # Spike testing
+    - duration: 60
+      arrivalRate: 20
+      name: "Spike test"
+    # Cool down
+    - duration: 60
+      arrivalRate: 1
+      name: "Cool down"
+  defaults:
+    headers:
+      Authorization: "Bearer test-token"
+  processor: "./test/load-test-helper.js"
+
+scenarios:
+  - name: "Incident Management Flow"
+    weight: 70
+    flow:
+      - post:
+          url: "/api/incidents"
+          json:
+            title: "Load Test Incident {{ $randomInt }}"
+            description: "Performance testing incident"
+            priority: "medium"
+          capture:
+            json: "$.data.incident.id"
+            as: "incidentId"
+      - get:
+          url: "/api/incidents"
+          qs:
+            limit: "10"
+      - get:
+          url: "/api/incidents/{{ incidentId }}"
+      - post:
+          url: "/api/incidents/{{ incidentId }}/acknowledge"
+          json:
+            notes: "Load test acknowledgment"
+
+  - name: "Read Operations"
+    weight: 25
+    flow:
+      - get:
+          url: "/api/incidents"
+          qs:
+            status: "created"
+            limit: "20"
+      - get:
+          url: "/api/incidents/stats"
+
+  - name: "Health Check"
+    weight: 5
+    flow:
+      - get:
+          url: "/api/health"
+      - get:
+          url: "/api/health/ready"

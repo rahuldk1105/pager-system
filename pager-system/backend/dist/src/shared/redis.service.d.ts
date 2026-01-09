@@ -1,0 +1,34 @@
+import { OnModuleDestroy } from '@nestjs/common';
+import Redis from 'ioredis';
+import { RedisConfigService } from '../config/redis.config';
+export declare class RedisService implements OnModuleDestroy {
+    private configService;
+    private readonly logger;
+    private client;
+    constructor(configService: RedisConfigService);
+    onModuleDestroy(): void;
+    get(key: string): Promise<string | null>;
+    set(key: string, value: string, ttlSeconds?: number): Promise<void>;
+    setex(key: string, ttlSeconds: number, value: string): Promise<void>;
+    del(key: string | string[]): Promise<number>;
+    exists(key: string): Promise<boolean>;
+    expire(key: string, ttlSeconds: number): Promise<boolean>;
+    ttl(key: string): Promise<number>;
+    hget(key: string, field: string): Promise<string | null>;
+    hset(key: string, field: string, value: string): Promise<number>;
+    hgetall(key: string): Promise<Record<string, string>>;
+    hdel(key: string, fields: string | string[]): Promise<number>;
+    sadd(key: string, members: string | string[]): Promise<number>;
+    srem(key: string, members: string | string[]): Promise<number>;
+    sismember(key: string, member: string): Promise<boolean>;
+    smembers(key: string): Promise<string[]>;
+    zadd(key: string, score: number, member: string): Promise<number>;
+    zrange(key: string, start: number, stop: number): Promise<string[]>;
+    zrem(key: string, members: string | string[]): Promise<number>;
+    lpush(key: string, values: string | string[]): Promise<number>;
+    rpop(key: string): Promise<string | null>;
+    llen(key: string): Promise<number>;
+    keys(pattern: string): Promise<string[]>;
+    flushall(): Promise<void>;
+    getClient(): Redis;
+}

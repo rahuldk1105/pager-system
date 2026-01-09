@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pager-grafana-dashboard
+  namespace: pager-system
+  labels:
+    grafana_dashboard: "1"
+data:
+  pager-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "Pager System Dashboard",
+        "tags": ["pager", "production"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "title": "API Response Time",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "95th percentile"
+              },
+              {
+                "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "50th percentile"
+              }
+            ]
+          },
+          {
+            "title": "Error Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(http_requests_total{status=~\"5..\"}[5m]) / rate(http_requests_total[5m]) * 100",
+                "legendFormat": "Error rate %"
+              }
+            ]
+          },
+          {
+            "title": "Active Incidents",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "pager_incidents_active",
+                "legendFormat": "Active incidents"
+              }
+            ]
+          },
+          {
+            "title": "Escalation Events",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(pager_escalations_total[5m])",
+                "legendFormat": "Escalations per second"
+              }
+            ]
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+    }
