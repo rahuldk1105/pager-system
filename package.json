@@ -1,22 +1,20 @@
 {
-  "name": "pager-system-monorepo",
-  "version": "1.0.0",
-  "description": "Pager System Monorepo with Backend and Mobile",
-  "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
-  "scripts": {
-    "build": "npm run build --workspaces",
-    "test": "npm run test --workspaces",
-    "lint": "npm run lint --workspaces",
-    "format": "npm run format --workspaces"
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+    }
   },
-  "keywords": [
-    "pager",
-    "alerting",
-    "monorepo"
-  ],
-  "author": "",
-  "license": "ISC"
+  "lint-staged": {
+    "*.{ts,js}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.dart": [
+      "flutter format"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
+  }
 }
