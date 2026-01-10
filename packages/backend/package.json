@@ -15,7 +15,9 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "audit": "npm audit --audit-level=moderate",
+    "security": "snyk test"
   },
   "keywords": [],
   "author": "",
@@ -35,9 +37,8 @@
     "@nestjs/terminus": "^11.0.0",
     "@nestjs/throttler": "^6.0.0",
     "@nestjs/typeorm": "^11.0.0",
-    "typeorm": "^0.3.28",
-    "pg": "^8.16.3",
     "@supabase/supabase-js": "^2.38.4",
+    "pg": "^8.16.3",
     "redis": "^5.10.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
@@ -47,6 +48,7 @@
   "devDependencies": {
     "@nestjs/cli": "^11.0.14",
     "@nestjs/testing": "^11.1.11",
+    "@snyk/protect": "^1.1301.2",
     "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
@@ -75,9 +77,32 @@
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "collectCoverageFrom": [
-      "**/*.(t|j)s"
+      "**/*.(t|j)s",
+      "!**/*.module.ts",
+      "!**/*.entity.ts",
+      "!**/*.dto.ts",
+      "!**/index.ts",
+      "!**/main.ts",
+      "!**/*.config.ts",
+      "!**/*.strategy.ts",
+      "!**/*.guard.ts",
+      "!**/*.decorator.ts"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "coverageThreshold": {
+      "global": {
+        "branches": 80,
+        "functions": 80,
+        "lines": 80,
+        "statements": 80
+      }
+    },
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html",
+      "json-summary"
+    ]
   }
 }
