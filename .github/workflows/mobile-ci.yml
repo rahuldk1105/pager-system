@@ -43,7 +43,7 @@ jobs:
         working-directory: packages/mobile
 
       - name: Upload coverage reports
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           file: ./packages/mobile/coverage/lcov.info
           flags: mobile
