@@ -1,6 +1,7 @@
 class Constants {
-  // API Configuration
-  static const String apiBaseUrl = 'https://api.pager-system.com'; // Update with your actual API URL
+  // API Configuration - Update with your deployed backend URL
+  static const String apiBaseUrl = 'https://pager-backend-production.up.railway.app'; // Railway deployment URL
+  // static const String apiBaseUrl = 'http://localhost:3000'; // Local development
   static const String apiVersion = 'v1';
 
   // App Configuration

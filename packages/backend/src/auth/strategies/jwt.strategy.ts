@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { UsersService } from '../../users/users.service';
+import { SupabaseConfigService } from '../../config/supabase.config';
 
 export interface JwtPayload {
   sub: string; // user id
@@ -17,6 +18,7 @@ export interface JwtPayload {
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private configService: ConfigService,
+    private usersService: UsersService,
     private supabaseConfig: SupabaseConfigService,
   ) {
     super({

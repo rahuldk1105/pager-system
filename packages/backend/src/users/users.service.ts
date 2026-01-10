@@ -7,6 +7,7 @@ import { UserRoleEntity } from './user-role.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ConflictException, NotFoundException } from '../common/exceptions';
+import { SupabaseConfigService } from '../config/supabase.config';
 
 @Injectable()
 export class UsersService {
@@ -15,6 +16,7 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    private dataSource: DataSource,
     private supabaseConfig: SupabaseConfigService,
   ) {}
 
@@ -69,7 +71,7 @@ export class UsersService {
 
   async findAll(): Promise<User[]> {
     try {
-      return await this.userRepository.find({
+      return await this.usersRepository.find({
         relations: ['roles'],
         where: { status: UserStatus.ACTIVE },
         order: { createdAt: 'DESC' },
@@ -82,7 +84,7 @@ export class UsersService {
 
   async findById(id: string): Promise<User> {
     try {
-      const user = await this.userRepository.findOne({
+      const user = await this.usersRepository.findOne({
         where: { id },
         relations: ['roles'],
       });
@@ -100,7 +102,7 @@ export class UsersService {
 
   async findByEmail(email: string): Promise<User | null> {
     try {
-      return await this.userRepository.findOne({
+      return await this.usersRepository.findOne({
         where: { email },
         relations: ['roles'],
       });
@@ -154,7 +156,7 @@ export class UsersService {
 
       // Soft delete by setting status to inactive
       user.status = UserStatus.INACTIVE;
-      await this.userRepository.save(user);
+      await this.usersRepository.save(user);
 
       this.logger.log(`User deactivated: ${user.email} (${user.id})`);
     } catch (error) {
